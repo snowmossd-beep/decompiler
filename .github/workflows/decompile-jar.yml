@@ -3,7 +3,7 @@ name: Decompile DonutOrder
 on:
   push:
     paths:
-      - "DonutOrder-5.0.0.jar"
+      - "DH-Giftcode-1.7.3-1.jar"
   workflow_dispatch:
 
 jobs:
@@ -21,14 +21,14 @@ jobs:
         run: |
           curl -L -o vf.jar https://github.com/Vineflower/vineflower/releases/download/1.11.1/vineflower-1.11.1.jar
           mkdir output
-          java -jar vf.jar "DonutOrder-5.0.0.jar" output
+          java -jar vf.jar "DH-Giftcode-1.7.3-1.jar" output
 
       - name: Bỏ code thư viện bên thứ ba (sqlite/slf4j/hikari)
         run: |
           rm -rf output/org/sqlite output/org/slf4j output/com/zaxxer
-          cd output && zip -r ../donutorder-source.zip .
+          cd output && zip -r ../code-source.zip .
 
       - uses: actions/upload-artifact@v4
         with:
-          name: donutorder-source
-          path: donutorder-source.zip
+          name: code-source
+          path: code-source.zip
