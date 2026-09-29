@@ -1,14 +1,15 @@
 name: Decompile with Procyon
 
-# Đặt file này tại: .github/workflows/decompile-procyon.yml
+# Đặt file này tại: .github/workflows/decompile-jar.yml
+# Đặt file jar tại: input/EconomyV2.jar (hoặc đổi jar_path khi chạy)
 # Chạy tay: tab Actions -> "Decompile with Procyon" -> Run workflow
 
 on:
   workflow_dispatch:
     inputs:
       jar_path:
-        description: "EconomyV2.jar"
-        required: false
+        description: "Đường dẫn file .jar trong repo"
+        required: true
         default: "input/EconomyV2.jar"
       search:
         description: "Regex (không phân biệt hoa thường) để tìm trong class và source"
@@ -41,6 +42,9 @@ jobs:
         run: |
           if [ ! -f "$JAR_PATH" ]; then
             echo "::error::Không thấy file: $JAR_PATH"
+            echo "Các file .jar có trong repo:"
+            find . -name '*.jar' -not -path './.git/*'
+            echo "Thư mục gốc:"; ls -la
             exit 1
           fi
           ls -l "$JAR_PATH"
