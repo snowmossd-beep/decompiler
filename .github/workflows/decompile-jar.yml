@@ -8,7 +8,7 @@ on:
     inputs:
       jar_path:
         description: "EconomyV2.jar"
-        required: true
+        required: false
         default: "input/EconomyV2.jar"
       search:
         description: "Regex (không phân biệt hoa thường) để tìm trong class và source"
