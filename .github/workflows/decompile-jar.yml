@@ -1,34 +1,100 @@
-name: Decompile EconomyV2
+name: Decompile with Procyon
+
+# Đặt file này tại: .github/workflows/decompile-procyon.yml
+# Chạy tay: tab Actions -> "Decompile with Procyon" -> Run workflow
 
 on:
-  push:
-    paths:
-      - "EconomyV2.jar"
   workflow_dispatch:
+    inputs:
+      jar_path:
+        description: "EconomyV2.jar"
+        required: true
+        default: "input/EconomyV2.jar"
+      search:
+        description: "Regex (không phân biệt hoa thường) để tìm trong class và source"
+        required: true
+        default: "nulled|cracked by|licen[sc]e|findProduct"
+
+permissions:
+  contents: read
+
+env:
+  PROCYON_VERSION: "0.6.0"
 
 jobs:
   decompile:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-java@v4
+      - name: Setup Java
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "21"
 
-      - name: Decompile bằng Vineflower
+      - name: Kiểm tra file jar
+        env:
+          JAR_PATH: ${{ inputs.jar_path }}
         run: |
-          curl -L -o vf.jar https://github.com/Vineflower/vineflower/releases/download/1.11.1/vineflower-1.11.1.jar
-          mkdir output
-          java -jar vf.jar "EconomyV2.jar" output
+          if [ ! -f "$JAR_PATH" ]; then
+            echo "::error::Không thấy file: $JAR_PATH"
+            exit 1
+          fi
+          ls -l "$JAR_PATH"
 
-      - name: Bỏ code thư viện bên thứ ba (sqlite/slf4j/hikari)
+      - name: Tải Procyon
         run: |
-          rm -rf output/org/sqlite output/org/slf4j output/com/zaxxer
-          cd output && zip -r ../code-source.zip .
+          curl -fsSL --retry 3 -o procyon.jar \
+            "https://github.com/mstrobel/procyon/releases/download/v${PROCYON_VERSION}/procyon-decompiler-${PROCYON_VERSION}.jar"
+          java -jar procyon.jar --version || true
 
-      - uses: actions/upload-artifact@v4
+      - name: Decompile
+        env:
+          JAR_PATH: ${{ inputs.jar_path }}
+        run: |
+          mkdir -p out/src
+          java -jar procyon.jar -jar "$JAR_PATH" -o out/src || echo "::warning::Procyon trả về lỗi, vẫn tiếp tục báo cáo"
+          echo "Số file .java: $(find out/src -name '*.java' | wc -l)"
+
+      - name: Tìm chuỗi trong class và source
+        env:
+          JAR_PATH: ${{ inputs.jar_path }}
+          SEARCH: ${{ inputs.search }}
+        run: |
+          mkdir -p /tmp/classes
+          unzip -q "$JAR_PATH" -d /tmp/classes
+
+          in_class=$(grep -rlaEi -- "$SEARCH" /tmp/classes | sed 's#^/tmp/classes/##' | head -100 || true)
+          in_src=$(grep -rnEi -- "$SEARCH" out/src | cut -c1-240 | head -200 || true)
+          failed=$(grep -rl "could not be decompiled" out/src | head -100 || true)
+
+          {
+            echo "## Kết quả tìm: \`$SEARCH\`"
+            echo
+            echo "### File .class chứa chuỗi ở dạng chữ thường (chưa mã hóa)"
+            echo '```'
+            echo "${in_class:-(không có)}"
+            echo '```'
+            echo "### Trong source đã decompile"
+            echo '```'
+            echo "${in_src:-(không có)}"
+            echo '```'
+            echo "### Class/method Procyon không decompile được"
+            echo '```'
+            echo "${failed:-(không có)}"
+            echo '```'
+            echo
+            echo "> Nếu không ra gì: chuỗi có thể bị mã hóa (XOR/AES) và chỉ giải mã lúc chạy."
+          } | tee out/report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload kết quả
+        uses: actions/upload-artifact@v4
         with:
-          name: code-source
-          path: code-source.zip
+          name: procyon-output
+          path: |
+            out/src
+            out/report.md
+          retention-days: 7
