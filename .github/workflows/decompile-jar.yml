@@ -1,9 +1,9 @@
-name: Decompile DonutOrder
+name: Decompile EconomyV2
 
 on:
   push:
     paths:
-      - "DH-Giftcode-1.7.3-1.jar"
+      - "EconomyV2.jar"
   workflow_dispatch:
 
 jobs:
@@ -21,7 +21,7 @@ jobs:
         run: |
           curl -L -o vf.jar https://github.com/Vineflower/vineflower/releases/download/1.11.1/vineflower-1.11.1.jar
           mkdir output
-          java -jar vf.jar "DH-Giftcode-1.7.3-1.jar" output
+          java -jar vf.jar "EconomyV2.jar" output
 
       - name: Bỏ code thư viện bên thứ ba (sqlite/slf4j/hikari)
         run: |
