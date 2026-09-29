@@ -10,7 +10,7 @@ on:
       jar_path:
         description: "Đường dẫn file .jar trong repo"
         required: true
-        default: "input/EconomyV2.jar"
+        default: "EconomyV2.jar"
       search:
         description: "Regex (không phân biệt hoa thường) để tìm trong class và source"
         required: true
